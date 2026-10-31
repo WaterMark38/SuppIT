@@ -1,0 +1,14 @@
+node_modules
+.next
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+.idea
+.vscode
+.vercel
+coverage
+dist
+*.log
+*.zip

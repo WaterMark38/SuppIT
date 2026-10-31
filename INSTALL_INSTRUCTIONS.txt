@@ -1,0 +1,61 @@
+SuppIT Phase 4 — Admin & Normal User Accounts Update
+===================================================
+
+This is an UPDATE ONLY to the already working SuppIT Next.js project.
+It does not contain .env, node_modules, local data, the existing Prisma
+migration history, or any passwords. Do not replace the entire project.
+
+New functionality
+- Login with either username or email and a password.
+- Admin can create staff and other admin accounts by entering full name,
+  unique login username, email, role and initial password (12+ chars).
+- Admin can reset normal user passwords from the dashboard.
+- Admin can set the username of the existing administrator (e.g. admin).
+- Admin can change their own password after entering their current password.
+- Password resets invalidate the old sessions for affected accounts.
+- All users are saved in the existing Neon database.
+
+IMPORTANT: Example passwords shared in chat should NEVER be reused.
+
+INSTALLATION (Windows WebStorm terminal, inside existing code folder)
+
+1) Stop `npm run dev` if it is running (Ctrl+C).
+2) Save a backup of the existing `code` project, or at least of these files:
+   prisma/schema.prisma
+   src/app/api/auth/login/route.js
+   src/app/api/users/route.js
+   src/app/api/users/[id]/password/route.js
+   src/lib/auth.js
+   src/components/SuppITApp.jsx
+   src/app/globals.css
+3) Copy/extract the ZIP contents into the EXISTING `code` directory;
+   replace files when prompted. The ZIP contains the folder layout.
+   It will NOT replace .env or existing migration files.
+4) With .env pointing to your SUPPIT DEVELOPMENT Neon branch, run:
+      npm run db:validate
+      npm run db:migrate -- --name suppit_usernames_and_sessions
+      npm run db:generate
+      npm run dev
+   The migration adds a nullable username and sessionVersion (default 0),
+   preserving your existing admin account. If Prisma warns about data loss,
+   STOP and do not approve it.
+5) Open http://localhost:3000 and log in with your EXISTING ADMIN EMAIL.
+   The old admin has no username yet.
+6) Click "Manage users & passwords" -> find the Admin (you) account ->
+   "Set or change login username" -> enter admin -> "Save username".
+7) In "Add new user", enter a name, username such as user1, a distinct
+   email address, unique password 12+ chars, select "Normal user (Staff)",
+   and click "Add user".
+8) Sign out and test both accounts using their usernames and emails.
+
+Security notes
+- Usernames are case-insensitive and unique across all companies. A new
+  account cannot reuse a username or email taken by another account.
+- No accounts or passwords are hardcoded into frontend files.
+- Existing sessions may need to sign in again after the schema change.
+- Admin cannot reset a different Admin account's password; each Admin
+  changes their own password with the current password.
+- Do not run admin:create again. Your existing Admin/Company is preserved.
+
+This package was static syntax checked but was not connected to your live
+Neon database here. Run the local validation and migration commands above.

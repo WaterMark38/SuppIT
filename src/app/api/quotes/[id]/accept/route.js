@@ -1,0 +1,10 @@
+import { withAuth } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { AppError,json } from '@/lib/http';
+export const POST=withAuth(async(_req,u,ctx)=>{const {id}=await ctx.params;
+const order=await prisma.$transaction(async(tx)=>{const q=await tx.quotation.findFirst({where:{id,companyId:u.companyId},include:{items:true,order:true}});
+if(!q)throw new AppError('Quotation not found',404);if(q.order)throw new AppError('Order already exists',409);
+if(!['Draft','Sent'].includes(q.status))throw new AppError('Quotation is already finalised',409);
+await tx.quotation.update({where:{id},data:{status:'Accepted'}});
+return tx.salesOrder.create({data:{companyId:u.companyId,customerId:q.customerId,quotationId:q.id,totalAmount:q.totalAmount,items:{create:q.items.map(x=>({companyId:u.companyId,stockId:x.stockId,description:x.description,quantity:x.quantity,unitPrice:x.unitPrice,lineTotal:x.lineTotal}))}}});
+},{isolationLevel:'Serializable'});return json({order:{id:order.id,reference:`ORD-${order.id.slice(0,8).toUpperCase()}`}},201);},['Admin','Staff']);

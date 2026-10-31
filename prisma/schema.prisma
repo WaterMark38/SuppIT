@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  Admin
+  Staff
+  Viewer
+}
+enum QuotationStatus {
+  Draft
+  Sent
+  Accepted
+  Declined
+}
+enum OrderStatus {
+  Pending
+  Fulfilled
+  Cancelled
+}
+enum PaymentStatus {
+  Unpaid
+  PartiallyPaid
+  Paid
+}
+enum ReminderStatus {
+  DueSoon
+  Overdue
+  Resolved
+}
+
+model Company {
+  id String @id @default(uuid()) @db.Uuid
+  companyName String @db.VarChar(100)
+  taxNumber String? @db.VarChar(30)
+  createdAt DateTime @default(now())
+  users User[]
+  customers Customer[]
+  suppliers Supplier[]
+  stockItems StockItem[]
+  quotations Quotation[]
+  orders SalesOrder[]
+  invoices Invoice[]
+  payments Payment[]
+  reminders Reminder[]
+}
+model User {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  company Company @relation(fields:[companyId],references:[id])
+  fullName String @db.VarChar(100)
+  email String @unique @db.VarChar(150)
+  username String? @unique @db.VarChar(40)
+  passwordHash String @db.VarChar(255)
+  sessionVersion Int @default(0)
+  role UserRole @default(Staff)
+  createdAt DateTime @default(now())
+  @@index([companyId])
+}
+model Customer {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  company Company @relation(fields:[companyId], references:[id])
+  name String @db.VarChar(100)
+  email String @db.VarChar(150)
+  phone String @db.VarChar(20)
+  address String?
+  bankingDetails String?
+  notes String?
+  quotations Quotation[]
+  orders SalesOrder[]
+  invoices Invoice[]
+  @@unique([companyId,email])
+  @@index([companyId])
+}
+model Supplier {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  company Company @relation(fields:[companyId],references:[id])
+  name String @db.VarChar(100)
+  email String? @db.VarChar(150)
+  phone String? @db.VarChar(20)
+  address String?
+  bankingDetails String?
+  notes String?
+  stockItems StockItem[]
+  @@index([companyId])
+}
+model StockItem {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  company Company @relation(fields:[companyId],references:[id])
+  supplierId String? @db.Uuid
+  supplier Supplier? @relation(fields:[supplierId],references:[id])
+  name String @db.VarChar(100)
+  sku String? @db.VarChar(40)
+  description String?
+  unitCost Decimal? @db.Decimal(12,2)
+  quantity Int @default(0)
+  unitPrice Decimal @db.Decimal(12,2)
+  quotationItems QuotationItem[]
+  orderItems OrderItem[]
+  invoiceItems InvoiceItem[]
+  @@index([companyId])
+}
+model Quotation {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  company Company @relation(fields:[companyId],references:[id])
+  customerId String @db.Uuid
+  customer Customer @relation(fields:[customerId],references:[id])
+  status QuotationStatus @default(Draft)
+  title String?
+  notes String?
+  dueDate DateTime? @db.Date
+  priority String? @db.VarChar(10)
+  taxRate Decimal @default(0) @db.Decimal(5,2)
+  totalAmount Decimal @db.Decimal(12,2)
+  createdAt DateTime @default(now())
+  items QuotationItem[]
+  order SalesOrder?
+  @@index([companyId])
+}
+model QuotationItem {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  quotationId String @db.Uuid
+  quotation Quotation @relation(fields:[quotationId],references:[id])
+  stockId String? @db.Uuid
+  stock StockItem? @relation(fields:[stockId],references:[id])
+  description String
+  quantity Int
+  unitPrice Decimal @db.Decimal(12,2)
+  lineTotal Decimal @db.Decimal(12,2)
+  @@index([companyId,quotationId])
+}
+model SalesOrder {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  company Company @relation(fields:[companyId],references:[id])
+  quotationId String @unique @db.Uuid
+  quotation Quotation @relation(fields:[quotationId],references:[id])
+  customerId String @db.Uuid
+  customer Customer @relation(fields:[customerId],references:[id])
+  status OrderStatus @default(Pending)
+  totalAmount Decimal @db.Decimal(12,2)
+  createdAt DateTime @default(now())
+  items OrderItem[]
+  invoice Invoice?
+  @@index([companyId])
+}
+model OrderItem {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  orderId String @db.Uuid
+  order SalesOrder @relation(fields:[orderId],references:[id])
+  stockId String? @db.Uuid
+  stock StockItem? @relation(fields:[stockId],references:[id])
+  description String
+  quantity Int
+  unitPrice Decimal @db.Decimal(12,2)
+  lineTotal Decimal @db.Decimal(12,2)
+  @@index([companyId,orderId])
+}
+model Invoice {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  company Company @relation(fields:[companyId],references:[id])
+  orderId String @unique @db.Uuid
+  order SalesOrder @relation(fields:[orderId],references:[id])
+  customerId String @db.Uuid
+  customer Customer @relation(fields:[customerId],references:[id])
+  invoiceNumber String @unique @db.VarChar(30)
+  issueDate DateTime @db.Date
+  dueDate DateTime @db.Date
+  paymentStatus PaymentStatus @default(Unpaid)
+  totalAmount Decimal @db.Decimal(12,2)
+  items InvoiceItem[]
+  payments Payment[]
+  reminders Reminder[]
+  @@index([companyId])
+}
+model InvoiceItem {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  invoiceId String @db.Uuid
+  invoice Invoice @relation(fields:[invoiceId],references:[id])
+  stockId String? @db.Uuid
+  stock StockItem? @relation(fields:[stockId],references:[id])
+  description String
+  quantity Int
+  unitPrice Decimal @db.Decimal(12,2)
+  lineTotal Decimal @db.Decimal(12,2)
+  @@index([companyId,invoiceId])
+}
+model Payment {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  company Company @relation(fields:[companyId],references:[id])
+  invoiceId String @db.Uuid
+  invoice Invoice @relation(fields:[invoiceId],references:[id])
+  amountPaid Decimal @db.Decimal(12,2)
+  paymentMethod String @db.VarChar(30)
+  paymentDate DateTime @default(now())
+  @@index([companyId,invoiceId])
+}
+model Reminder {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  company Company @relation(fields:[companyId],references:[id])
+  invoiceId String @db.Uuid
+  invoice Invoice @relation(fields:[invoiceId],references:[id])
+  scheduledDate DateTime @db.Date
+  status ReminderStatus
+  description String?
+  @@unique([invoiceId])
+  @@index([companyId])
+}
