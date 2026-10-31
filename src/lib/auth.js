@@ -52,7 +52,11 @@ export function withAuth(action, roles = ['Admin','Staff','Viewer']) {
       }
       const user = await currentUser();
       if (!user) throw new AppError('Please sign in',401);
-      if (!roles.includes(user.role)) throw new AppError('Insufficient permissions',403);
+      // The company owner may access all endpoints available to an Admin.
+      // Other roles never inherit higher permissions.
+      const permitted = roles.includes(user.role) ||
+        (user.role === 'SuperAdmin' && roles.includes('Admin'));
+      if (!permitted) throw new AppError('Insufficient permissions',403);
       return await action(request, user, context);
     } catch(error) { return handleError(error); }
   };

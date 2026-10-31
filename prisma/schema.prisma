@@ -8,6 +8,7 @@ datasource db {
 }
 
 enum UserRole {
+  SuperAdmin
   Admin
   Staff
   Viewer
@@ -54,7 +55,7 @@ model User {
   companyId String @db.Uuid
   company Company @relation(fields:[companyId],references:[id])
   fullName String @db.VarChar(100)
-  email String @unique @db.VarChar(150)
+  email String? @unique @db.VarChar(150)
   username String? @unique @db.VarChar(40)
   passwordHash String @db.VarChar(255)
   sessionVersion Int @default(0)

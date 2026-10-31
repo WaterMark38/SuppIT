@@ -43,8 +43,8 @@ function displayUser(user) {
     id: user.id,
     email: user.email,
     username: user.username || "",
-    displayName: user.fullName || user.email,
-    role: String(user.role || "Staff").toLowerCase() === "admin" ? "admin" : "user",
+    displayName: user.fullName || user.username || user.email || "User",
+    role: user.role === "SuperAdmin" ? "superadmin" : user.role === "Admin" ? "admin" : "user",
   };
 }
 
@@ -623,7 +623,8 @@ function App() {
   const [form, setForm] = useState(EMPTY_FORM);
 
   const currentUser = users.find((user) => user.id === currentUserId) || null;
-  const isAdmin = currentUser?.role === "admin";
+  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "superadmin";
+  const isSuperAdmin = currentUser?.role === "superadmin";
   const isContactTab = activeTab === "suppliers" || activeTab === "customers";
   const isTransactionTab = activeTab === "orders" || activeTab === "quotes";
   const isStockTab = activeTab === "stock";
@@ -639,7 +640,7 @@ function App() {
         setCurrentUserId(user.id);
         const { records: saved } = await api("/records");
         setRecords(saved.map(normalizeRecord));
-        if (user.role === "admin") {
+        if (user.role === "admin" || user.role === "superadmin") {
           const result = await api("/users");
           setUsers(result.map(displayUser));
         }
@@ -836,7 +837,7 @@ function App() {
       setCurrentUserId(user.id);
       setLoginForm(EMPTY_LOGIN_FORM);
       await refreshRecords();
-      if (user.role === "admin") {
+      if (user.role === "admin" || user.role === "superadmin") {
         const result = await api("/users");
         setUsers(result.map(displayUser));
       }
@@ -874,10 +875,10 @@ function App() {
     event.preventDefault();
     if (!isAdmin) return;
     try {
-      await api("/users", { method:"POST", body:JSON.stringify(newUser) });
+      await api("/users", { method:"POST", body:JSON.stringify({...newUser, email: newUser.email || null}) });
       await refreshUsers();
       setNewUser(EMPTY_NEW_USER);
-      setAccountMessage("New account created. The employee can sign in using their username or email.");
+      setAccountMessage("Account created. The person can sign in using their username and password.");
     } catch(error) { setAccountMessage(error.message); }
   }
 
@@ -1272,20 +1273,20 @@ function App() {
           <div className="login-heading">
             <p className="eyebrow">Secure local access</p>
             <h1>Sign in</h1>
-            <p>Sign in as an administrator or staff member with your username or email.</p>
+            <p>Sign in with your username and password.</p>
             {serverError && <p className="login-error">Server: {serverError}</p>}
           </div>
 
           <form className="login-form" onSubmit={signIn}>
             <label className="form-field">
-              <span>Username or email address</span>
+              <span>Username</span>
               <input
                 type="text"
                 value={loginForm.identifier}
                 onChange={(event) =>
                   setLoginForm({ ...loginForm, identifier: event.target.value })
                 }
-                placeholder="Enter username or email"
+                placeholder="Enter your username"
                 autoComplete="username"
                 required
                 autoFocus
@@ -1403,7 +1404,7 @@ function App() {
             </div>
             <div>
               <strong>{currentUser.displayName}</strong>
-              <span>{isAdmin ? "Administrator" : "Staff user"}</span>
+              <span>{isSuperAdmin ? "Super Administrator" : isAdmin ? "Administrator" : "Staff user"}</span>
             </div>
             <Icon name="chevron" size={16} />
           </div>
@@ -1819,6 +1820,7 @@ function App() {
           usernameEdits={usernameEdits}
           setUsernameEdits={setUsernameEdits}
           onSaveUsername={saveUsername}
+          isSuperAdmin={isSuperAdmin}
           resetPasswords={resetPasswords}
           setResetPasswords={setResetPasswords}
           resetCurrentPasswords={resetCurrentPasswords}
@@ -2672,6 +2674,7 @@ function UserManagementModal({
   usernameEdits,
   setUsernameEdits,
   onSaveUsername,
+  isSuperAdmin,
   resetPasswords,
   setResetPasswords,
   resetCurrentPasswords,
@@ -2695,8 +2698,8 @@ function UserManagementModal({
         </div>
         <div className="user-management-content">
           <p className="user-management-note">
-            Add new administrators or normal staff users. Each person logs in with their own username or email and password.
-            Only administrators can manage accounts or reset staff passwords.
+            Create accounts with a username and password. Email is not required.
+            Administrators can manage Staff accounts, while only the Super Admin can create Admin accounts or reset Admin passwords.
           </p>
 
           {accountMessage && (
@@ -2722,15 +2725,10 @@ function UserManagementModal({
                   placeholder="e.g. user1" minLength={3} maxLength={40} pattern="[A-Za-z][A-Za-z0-9._-]*" required autoComplete="off" />
               </label>
               <label className="form-field">
-                <span>Email address</span>
-                <input type="email" value={newUser.email} onChange={e=>setNewUser({...newUser,email:e.target.value})}
-                  placeholder="employee@example.com" maxLength={150} required autoComplete="off" />
-              </label>
-              <label className="form-field">
                 <span>Role</span>
                 <select value={newUser.role} onChange={e=>setNewUser({...newUser,role:e.target.value})}>
                   <option value="Staff">Normal user (Staff)</option>
-                  <option value="Admin">Administrator</option>
+                  {isSuperAdmin && <option value="Admin">Administrator</option>}
                 </select>
               </label>
               <label className="form-field user-create-full">
@@ -2748,10 +2746,11 @@ function UserManagementModal({
               <article className="user-management-row" key={user.id}>
                 <div className="user-account-details">
                   <strong>{user.displayName} {user.id===currentUserId ? "(you)" : ""}</strong>
-                  <span>{user.role==="admin" ? "Administrator" : "Normal user"} · {user.email}</span>
+                  <span>{user.role === "superadmin" ? "Super Administrator" : user.role === "admin" ? "Administrator" : "Normal user"}{user.email ? ` · ${user.email}` : ""}</span>
                   <span>Username: {user.username || "Not set"}</span>
                 </div>
                 <div className="user-account-controls">
+                  {(isSuperAdmin || user.role === "user" || user.id === currentUserId) && (
                   <div className="user-inline-row">
                     <label className="form-field">
                       <span>Set or change login username</span>
@@ -2764,7 +2763,8 @@ function UserManagementModal({
                       Save username
                     </button>
                   </div>
-                  {(user.role!=="admin" || user.id===currentUserId) && (
+                  )}
+                  {(user.id === currentUserId || user.role === "user" || (isSuperAdmin && user.role === "admin")) && (
                     <div className="user-inline-row">
                       <label className="form-field">
                         <span>{user.id===currentUserId ? "Your new password" : "Reset password"}</span>
@@ -2772,7 +2772,7 @@ function UserManagementModal({
                           onChange={e=>setResetPasswords({...resetPasswords,[user.id]:e.target.value})}
                           placeholder="At least 12 characters" minLength={12} autoComplete="new-password" />
                       </label>
-                      {user.role==="admin" && user.id===currentUserId && (
+                      {user.id===currentUserId && (
                         <label className="form-field">
                           <span>Your current password</span>
                           <input type="password" value={resetCurrentPasswords[user.id] ?? ""}

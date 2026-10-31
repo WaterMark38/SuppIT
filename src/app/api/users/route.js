@@ -1,32 +1,46 @@
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { withAuth, clearSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { withAuth } from '@/lib/auth';
 import { AppError, json, readBody } from '@/lib/http';
 
-const schema = z.object({
+// Every user logs in with a unique username. An email address is optional.
+const usernameSchema = z.string().trim().min(3).max(40)
+  .regex(/^[a-zA-Z][a-zA-Z0-9._-]*$/, 'Use letters, numbers, dots, hyphens or underscores');
+
+const createSchema = z.object({
+  fullName: z.string().trim().min(1).max(100),
+  username: usernameSchema,
+  email: z.union([z.email().max(150), z.literal('')]).optional().nullable(),
   password: z.string().min(12).max(72),
-  currentPassword: z.string().optional()
+  role: z.enum(['Admin','Staff'])
 }).strict();
 
-export const PATCH = withAuth(async (req, admin, ctx) => {
-  const {id} = await ctx.params;
-  const d = await readBody(req,schema);
-  const target = await prisma.user.findFirst({where:{id,companyId:admin.companyId}});
-  if (!target) throw new AppError('User not found',404);
+export const GET = withAuth(async (_req, user) => json(
+  await prisma.user.findMany({
+    // A regular Admin cannot view Super Admin account details.
+    where: {companyId:user.companyId,
+      ...(user.role === 'Admin' ? {role: {not:'SuperAdmin'}} : {})},
+    select: {id:true,fullName:true,username:true,email:true,role:true},
+    orderBy: {fullName:'asc'}
+  })
+), ['Admin']);
 
-  const isSelf = target.id === admin.id;
-  if (target.role === 'Admin') {
-    // Prevent one administrator from taking over another administrator's account.
-    if (!isSelf) throw new AppError('Only the account owner can change this administrator password',403);
-    if (!d.currentPassword || !await bcrypt.compare(d.currentPassword,target.passwordHash)) {
-      throw new AppError('Current password is incorrect',403);
-    }
+export const POST = withAuth(async (req, actor) => {
+  const d = await readBody(req, createSchema);
+  if (actor.role === 'Admin' && d.role !== 'Staff') {
+    throw new AppError('Administrators may only create Staff accounts',403);
   }
-  await prisma.user.update({
-    where:{id},
-    data:{passwordHash:await bcrypt.hash(d.password,12),sessionVersion:{increment:1}}
+  const created = await prisma.user.create({
+    data: {
+      companyId:actor.companyId,
+      fullName:d.fullName.trim(),
+      username:d.username.trim().toLowerCase(),
+      email:d.email ? d.email.trim().toLowerCase() : null,
+      passwordHash:await bcrypt.hash(d.password,12),
+      role:d.role
+    },
+    select: {id:true,fullName:true,username:true,email:true,role:true}
   });
-  if (isSelf) await clearSession();
-  return json({success:true, signedOut:isSelf});
-},['Admin']);
+  return json(created,201);
+}, ['Admin']);

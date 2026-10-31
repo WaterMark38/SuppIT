@@ -1,32 +1,27 @@
-import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { withAuth, clearSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { withAuth } from '@/lib/auth';
 import { AppError, json, readBody } from '@/lib/http';
 
-const schema = z.object({
-  password: z.string().min(12).max(72),
-  currentPassword: z.string().optional()
+const updateSchema = z.object({
+  username: z.string().trim().min(3).max(40)
+    .regex(/^[a-zA-Z][a-zA-Z0-9._-]*$/)
 }).strict();
 
-export const PATCH = withAuth(async (req, admin, ctx) => {
+export const PATCH = withAuth(async (req, actor, ctx) => {
   const {id} = await ctx.params;
-  const d = await readBody(req,schema);
-  const target = await prisma.user.findFirst({where:{id,companyId:admin.companyId}});
+  const d = await readBody(req, updateSchema);
+  const target = await prisma.user.findFirst({where:{id,companyId:actor.companyId}});
   if (!target) throw new AppError('User not found',404);
-
-  const isSelf = target.id === admin.id;
-  if (target.role === 'Admin') {
-    // Prevent one administrator from taking over another administrator's account.
-    if (!isSelf) throw new AppError('Only the account owner can change this administrator password',403);
-    if (!d.currentPassword || !await bcrypt.compare(d.currentPassword,target.passwordHash)) {
-      throw new AppError('Current password is incorrect',403);
-    }
+  if (target.role === 'SuperAdmin' && target.id !== actor.id) {
+    throw new AppError('The Super Admin account is protected',403);
   }
-  await prisma.user.update({
-    where:{id},
-    data:{passwordHash:await bcrypt.hash(d.password,12),sessionVersion:{increment:1}}
+  if (actor.role === 'Admin' && target.role !== 'Staff' && target.id !== actor.id) {
+    throw new AppError('Administrators may only edit Staff usernames',403);
+  }
+  const changed = await prisma.user.update({
+    where:{id}, data:{username:d.username.trim().toLowerCase()},
+    select:{id:true,fullName:true,username:true,email:true,role:true}
   });
-  if (isSelf) await clearSession();
-  return json({success:true, signedOut:isSelf});
+  return json(changed);
 },['Admin']);
