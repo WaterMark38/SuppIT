@@ -12,3 +12,9 @@ node_modules/
 .idea/
 *.log
 *.backup
+node_modules/
+.next/
+.env
+.env.*
+!.env.example
+*.log
