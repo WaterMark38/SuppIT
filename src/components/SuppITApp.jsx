@@ -1,4 +1,5 @@
 "use client";
+// Frontend screens.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
 import OperationsPanel from "./OperationsPanel";
@@ -24,8 +25,9 @@ const RECORDS_STORAGE_KEY = "watermark-dev-records-v7";
 const RECORDS_SIGNATURE_KEY = "watermark-dev-records-signature-v7";
 const INITIAL_RECORDS_SIGNATURE = JSON.stringify(INITIAL_RECORDS);
 
-// Browser never receives the database password. All data requests go through Next.js APIs.
+// The backend handles database requests.
 const API_BASE_URL = "/api";
+// Sends requests to the backend.
 async function api(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     credentials: "same-origin",
@@ -38,6 +40,7 @@ async function api(path, options = {}) {
 }
 
 
+// Shows the signed-in user and role.
 function displayUser(user) {
   return {
     id: user.id,
@@ -130,6 +133,7 @@ const EMPTY_LINE_ITEM = {
   unitPrice: 0,
 };
 
+// Draws the menu icons.
 function Icon({ name, size = 20 }) {
   const common = {
     width: size,
@@ -282,6 +286,7 @@ function Icon({ name, size = 20 }) {
   return <svg {...common}>{paths[name]}</svg>;
 }
 
+// Shows the SuppIT logo.
 function BrandLogo({ className = "" }) {
   const [failed, setFailed] = useState(false);
 
@@ -299,6 +304,7 @@ function BrandLogo({ className = "" }) {
   );
 }
 
+// Formats dates.
 function formatDate(value) {
   if (!value) return "No date";
 
@@ -311,6 +317,7 @@ function formatDate(value) {
   }).format(date);
 }
 
+// Formats amounts in rand.
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-ZA", {
     style: "currency",
@@ -318,6 +325,7 @@ function formatCurrency(value) {
   }).format(Number(value) || 0);
 }
 
+// Formats dates for display.
 function getRelativeDate(value) {
   if (!value) return "";
 
@@ -337,6 +345,7 @@ function getRelativeDate(value) {
   return `Due in ${days} days`;
 }
 
+// Cleans imported column names.
 function cleanHeader(value) {
   return String(value ?? "")
     .trim()
@@ -344,6 +353,7 @@ function cleanHeader(value) {
     .replace(/[^a-z0-9]/g, "");
 }
 
+// Finds matching imported fields.
 function readColumn(row, possibleNames) {
   const entries = Object.entries(row).map(([key, value]) => [
     cleanHeader(key),
@@ -361,6 +371,7 @@ function readColumn(row, possibleNames) {
   return "";
 }
 
+// Reads CSV contact records.
 function parseCsvFile(text) {
   const table = [];
   let currentRow = [];
@@ -425,6 +436,7 @@ function parseCsvFile(text) {
   });
 }
 
+// Reads imported HTML tables.
 function parseHtmlFile(text) {
   const documentFile = new DOMParser().parseFromString(text, "text/html");
   const tableElement = documentFile.querySelector("table");
@@ -458,6 +470,7 @@ function parseHtmlFile(text) {
   });
 }
 
+// Prepares the import file.
 function readImportFile(file, text) {
   const extension = file.name.split(".").pop()?.toLowerCase();
 
@@ -472,6 +485,7 @@ function readImportFile(file, text) {
   throw new Error("Only CSV and HTML files are allowed.");
 }
 
+// Creates the next record reference.
 function getNextReference(category, records) {
   const prefix = category === "orders" ? "ORD" : "QUO";
 
@@ -484,6 +498,7 @@ function getNextReference(category, records) {
   return `${prefix}-${String(nextNumber).padStart(4, "0")}`;
 }
 
+// Creates the next stock code.
 function getNextStockSku(records) {
   const numbers = records
     .filter((item) => item.category === "stock")
@@ -494,11 +509,13 @@ function getNextStockSku(records) {
   return `STK-${String(nextNumber).padStart(4, "0")}`;
 }
 
+// Creates an order reference.
 function getInvoiceReference(orderReference) {
   const number = String(orderReference ?? "").match(/\d+/)?.[0] ?? "1";
   return `INV-${String(Number(number)).padStart(4, "0")}`;
 }
 
+// Keeps usernames consistent.
 function normalizeUsername(value) {
   return String(value ?? "")
     .trim()
@@ -506,6 +523,7 @@ function normalizeUsername(value) {
     .replace(/\s+/g, "");
 }
 
+// Formats records for the forms.
 function normalizeRecord(record) {
   if (record.category === "orders" || record.category === "quotes") {
     return {
@@ -536,6 +554,7 @@ function normalizeRecord(record) {
   return record;
 }
 
+// Loads available records.
 function loadRecords() {
   try {
     const savedText =
@@ -570,6 +589,7 @@ function loadRecords() {
   }
 }
 
+// Calculates item totals and VAT.
 function calculateDocumentTotals(record) {
   const items = Array.isArray(record.items) ? record.items : [];
   const subtotal = items.reduce(
@@ -586,6 +606,7 @@ function calculateDocumentTotals(record) {
   };
 }
 
+// Handles the main SuppIT screen.
 function App() {
   const [users, setUsers] = useState([]);
   const [currentUserId, setCurrentUserId] = useState("");
@@ -632,6 +653,7 @@ function App() {
   const stockItems = useMemo(() => records.filter(item => item.category === "stock"), [records]);
 
   useEffect(() => {
+    // Checks the current login.
     async function restoreSession() {
       try {
         const result = await api("/auth/me");
@@ -651,11 +673,13 @@ function App() {
     restoreSession();
   }, []);
 
+  // Loads business records from Neon.
   async function refreshRecords() {
     const { records: saved } = await api("/records");
     setRecords(saved.map(normalizeRecord));
   }
 
+  // Saves records through the API.
   async function saveToServer(record, editing = false) {
     await api(editing ? `/records/${encodeURIComponent(record.id)}` : "/records", {
       method: editing ? "PUT" : "POST", body: JSON.stringify({ record }),
@@ -663,6 +687,7 @@ function App() {
     await refreshRecords();
   }
 
+  // Imports old local records.
   async function importLegacyRecords() {
     if (!window.confirm(`Import saved customers, suppliers and stock records into the connected database? Review records first; duplicates are not automatically merged.`)) return;
     try {
@@ -827,6 +852,7 @@ function App() {
 
   const copy = PAGE_COPY[activeTab];
 
+  // Sends login details to the backend.
   async function signIn(event) {
     event.preventDefault();
     setLoginError("");
@@ -845,6 +871,7 @@ function App() {
     } catch(error) { setLoginError(error.message); }
   }
 
+  // Signs out the current user.
   async function signOut() {
     try { await api("/auth/logout", { method:"POST" }); } catch { /* clear UI regardless */ }
     setCurrentUserId("");
@@ -856,6 +883,7 @@ function App() {
     setModalOpen(false);
   }
 
+  // Opens user management.
   function openUserManagement() {
     if (!isAdmin) return;
     setResetPasswords({});
@@ -866,11 +894,13 @@ function App() {
     setUserManagementOpen(true);
   }
 
+  // Loads permitted user accounts.
   async function refreshUsers() {
     const result = await api("/users");
     setUsers(result.map(displayUser));
   }
 
+  // Creates users through the backend.
   async function createUser(event) {
     event.preventDefault();
     if (!isAdmin) return;
@@ -882,6 +912,7 @@ function App() {
     } catch(error) { setAccountMessage(error.message); }
   }
 
+  // Updates a username.
   async function saveUsername(userId) {
     if (!isAdmin) return;
     const username = String(usernameEdits[userId] || "").trim();
@@ -895,6 +926,7 @@ function App() {
     } catch(error) { setAccountMessage(error.message); }
   }
 
+  // Requests a permitted password reset.
   async function resetUserPassword(userId) {
     if (!isAdmin) return;
     const password = String(resetPasswords[userId] ?? "");
@@ -914,11 +946,13 @@ function App() {
     } catch(error) { setAccountMessage(error.message); }
   }
 
+  // Changes the current page.
   function selectTab(tabId) {
     setActiveTab(tabId);
     setMobileMenuOpen(false);
   }
 
+  // Opens the new record form.
   function openAddModal() {
     if (activeTab === "orders" || isOperationsTab) return;
     setEditingId(null);
@@ -934,6 +968,7 @@ function App() {
     setModalOpen(true);
   }
 
+  // Loads a record for editing.
   function openEditModal(record) {
     setEditingId(record.id);
     setForm({
@@ -966,11 +1001,13 @@ function App() {
     setModalOpen(true);
   }
 
+  // Shows record details.
   function openDetails(record) {
     setSelectedRecord(record);
     setDetailsOpen(true);
   }
 
+  // Edits a quotation item.
   function updateLineItem(itemId, field, value) {
     setTransactionItems((current) =>
       current.map((item) =>
@@ -987,6 +1024,7 @@ function App() {
     );
   }
 
+  // Uses stock details in the quotation.
   function selectStockForLine(itemId, sku) {
     const selected = stockItems.find(stock => String(stock.sku) === String(sku));
     setTransactionItems(current => current.map(line => {
@@ -1002,6 +1040,7 @@ function App() {
     }));
   }
 
+  // Adds a quotation item.
   function addLineItem() {
     setTransactionItems((current) => [
       ...current,
@@ -1009,6 +1048,7 @@ function App() {
     ]);
   }
 
+  // Removes a quotation item.
   function removeLineItem(itemId) {
     setTransactionItems((current) =>
       current.length === 1
@@ -1017,6 +1057,7 @@ function App() {
     );
   }
 
+  // Updates the selected customer.
   function handleCompanyChange(value) {
     const matchedCustomer = customers.find(
       (customer) =>
@@ -1030,6 +1071,7 @@ function App() {
     });
   }
 
+  // Validates and saves the record.
   async function saveRecord(event) {
     event.preventDefault();
 
@@ -1079,6 +1121,7 @@ function App() {
     setForm(EMPTY_FORM);
   }
 
+  // Updates the selected record.
   async function toggleCompleted(id) {
     const item=records.find(r=>r.id===id);
     if(!item) return;
@@ -1090,6 +1133,7 @@ function App() {
     catch(error) { window.alert(error.message); }
   }
 
+  // Creates an invoice from an order.
   async function generateInvoice(record) {
     if(record.category !== "orders")return;
     if(record.invoiceReference){ window.alert("This order already has an invoice."); return; }
@@ -1101,6 +1145,7 @@ function App() {
     catch(e){window.alert(e.message);}
   }
 
+  // Accepts the selected quotation.
   async function confirmQuote(record) {
     if (record.category !== "quotes" || record.convertedOrderReference) return;
     try {
@@ -1113,6 +1158,7 @@ function App() {
     } catch(error) { window.alert(`Quote conversion failed: ${error.message}`); }
   }
 
+  // Requests a safe record deletion.
   async function deleteRecord(record) {
     const name=record.fullCompanyName||record.reference||record.sku||record.itemName||record.title||"this record";
     if (!window.confirm(`Delete ${name}?`)) return;
@@ -1123,6 +1169,7 @@ function App() {
     } catch(error) { window.alert(`Delete failed: ${error.message}`); }
   }
 
+  // Prepares imported contact records.
   async function importContacts(event) {
     const file = event.target.files?.[0];
 
@@ -1208,6 +1255,7 @@ function App() {
     }
   }
 
+  // Finds the customer for a document.
   function getCustomerForRecord(record) {
     return customers.find(
       (customer) =>
@@ -1216,6 +1264,7 @@ function App() {
     );
   }
 
+  // Previews the quotation or invoice.
   function openDocumentPreview(record) {
     if (record.category === "orders" && !record.invoiceReference) {
       window.alert("Generate an invoice for this order first using the invoice API. Phase 4 requires the invoice to be saved in Neon before preview.");
@@ -1227,6 +1276,7 @@ function App() {
     setDocumentOpen(true);
   }
 
+  // Opens email; the PDF is attached manually.
   function openDefaultEmailApp(record, type) {
     const customer = getCustomerForRecord(record);
     const email = record.customerEmail || customer?.email || "";
@@ -1835,6 +1885,7 @@ function App() {
   );
 }
 
+// Shows the record actions.
 function RecordActions({ record, onView, onEdit, onDelete }) {
   return (
     <div className="record-actions">
@@ -1866,6 +1917,7 @@ function RecordActions({ record, onView, onEdit, onDelete }) {
   );
 }
 
+// Shows the record form.
 function RecordFormModal({
   activeTab,
   editingId,
@@ -2268,6 +2320,7 @@ function RecordFormModal({
   );
 }
 
+// Shows the selected record.
 function DetailsModal({
   record,
   onClose,
@@ -2439,6 +2492,7 @@ function DetailsModal({
   );
 }
 
+// Shows a record field.
 function DetailItem({ label, full = false, children }) {
   return (
     <div className={`detail-item ${full ? "detail-item--full" : ""}`}>
@@ -2448,6 +2502,7 @@ function DetailItem({ label, full = false, children }) {
   );
 }
 
+// Previews a business document.
 function DocumentPreviewModal({ record, type, customer, onClose, onEmail }) {
   const documentRef = useRef(null);
   const [savingPdf, setSavingPdf] = useState(false);
@@ -2459,6 +2514,7 @@ function DocumentPreviewModal({ record, type, customer, onClose, onEmail }) {
       : record.invoiceReference || "";
   const heading = type === "quote" ? "QUOTATION" : "TAX INVOICE";
 
+  // Generates a PDF and opens email.
   async function savePdfAndOpenEmail() {
     if (!documentRef.current || savingPdf) {
       return;
@@ -2665,6 +2721,7 @@ function DocumentPreviewModal({ record, type, customer, onClose, onEmail }) {
   );
 }
 
+// Shows permitted user controls.
 function UserManagementModal({
   users,
   currentUserId,

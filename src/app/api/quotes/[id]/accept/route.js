@@ -1,3 +1,5 @@
+// Backend API.
+// Marks a quotation as accepted before order conversion.
 import { withAuth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { AppError,json } from '@/lib/http';

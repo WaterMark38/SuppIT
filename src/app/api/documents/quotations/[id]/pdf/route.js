@@ -1,3 +1,5 @@
+// Backend API.
+// Creates a PDF from the saved quotation details.
 import { prisma } from '@/lib/db';
 import { withAuth } from '@/lib/auth';
 import { AppError } from '@/lib/http';

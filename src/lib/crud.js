@@ -1,9 +1,12 @@
+// Backend helpers.
 import { prisma } from './db';
 import { AppError, json, readBody } from './http';
 import { withAuth } from './auth';
+// Checks supplier details.
 async function checkSupplier(companyId, supplierId) {
   if (supplierId && !await prisma.supplier.findFirst({where:{id:supplierId,companyId}})) throw new AppError('Supplier not found for this company',404);
 }
+// Adds and lists company records.
 export function collection(model, schema) {
   const GET = withAuth(async (_req, user) => json(await prisma[model].findMany({where:{companyId:user.companyId},orderBy:{id:'desc'},take:300})));
   const POST = withAuth(async (req, user) => {
@@ -14,6 +17,7 @@ export function collection(model, schema) {
   },['Admin','Staff']);
   return { GET, POST };
 }
+// Edits or deletes a record.
 export function item(model,schema) {
   const PATCH = withAuth(async (req,user,ctx) => {
     const {id} = await ctx.params;

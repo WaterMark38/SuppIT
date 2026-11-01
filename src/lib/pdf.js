@@ -1,9 +1,12 @@
+// Backend helpers.
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-// Using standard fonts: strips unsupported glyphs. Replace with an embedded Unicode font for production.
+// Standard fonts may miss some characters.
 const clean = value => String(value ?? '').replace(/[^\x20-\x7E]/g, '?');
+// Creates a PDF from saved details.
 export async function makePdf({company, title, number, date, customer, items, total}) {
  const pdf = await PDFDocument.create();const font = await pdf.embedFont(StandardFonts.Helvetica);
  let page=pdf.addPage([595,842]);let y=790;
+ // Adds text to the PDF.
  function line(text,size=11){if(y<70){page=pdf.addPage([595,842]);y=790;}page.drawText(clean(text).slice(0,100),{x:45,y,size,font,color:rgb(0.1,0.16,0.24)});y-=size+12;}
  line(company,18);y-=7;line(title,16);line('Document: '+number);line('Date: '+date);line('Customer: '+customer);y-=10;
  line('DESCRIPTION                      QTY          PRICE         TOTAL');

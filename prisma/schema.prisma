@@ -1,3 +1,7 @@
+// Database models.
+// Defines the Neon database tables.
+// Only the backend uses Prisma.
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,34 +11,40 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// Sets the user access levels.
 enum UserRole {
   SuperAdmin
   Admin
   Staff
   Viewer
 }
+// Lists quotation statuses.
 enum QuotationStatus {
   Draft
   Sent
   Accepted
   Declined
 }
+// Lists order statuses.
 enum OrderStatus {
   Pending
   Fulfilled
   Cancelled
 }
+// Lists invoice payment statuses.
 enum PaymentStatus {
   Unpaid
   PartiallyPaid
   Paid
 }
+// Lists reminder statuses.
 enum ReminderStatus {
   DueSoon
   Overdue
   Resolved
 }
 
+// Keeps each company separate.
 model Company {
   id String @id @default(uuid()) @db.Uuid
   companyName String @db.VarChar(100)
@@ -50,6 +60,7 @@ model Company {
   payments Payment[]
   reminders Reminder[]
 }
+// Stores users and hashed passwords.
 model User {
   id String @id @default(uuid()) @db.Uuid
   companyId String @db.Uuid
@@ -63,6 +74,7 @@ model User {
   createdAt DateTime @default(now())
   @@index([companyId])
 }
+// Stores customer details.
 model Customer {
   id String @id @default(uuid()) @db.Uuid
   companyId String @db.Uuid
@@ -79,6 +91,7 @@ model Customer {
   @@unique([companyId,email])
   @@index([companyId])
 }
+// Stores suppliers.
 model Supplier {
   id String @id @default(uuid()) @db.Uuid
   companyId String @db.Uuid
@@ -92,6 +105,7 @@ model Supplier {
   stockItems StockItem[]
   @@index([companyId])
 }
+// Stores products, stock and prices.
 model StockItem {
   id String @id @default(uuid()) @db.Uuid
   companyId String @db.Uuid
@@ -109,6 +123,7 @@ model StockItem {
   invoiceItems InvoiceItem[]
   @@index([companyId])
 }
+// Links quotations to customers and items.
 model Quotation {
   id String @id @default(uuid()) @db.Uuid
   companyId String @db.Uuid
@@ -127,6 +142,7 @@ model Quotation {
   order SalesOrder?
   @@index([companyId])
 }
+// Stores quoted items and prices.
 model QuotationItem {
   id String @id @default(uuid()) @db.Uuid
   companyId String @db.Uuid
@@ -140,6 +156,7 @@ model QuotationItem {
   lineTotal Decimal @db.Decimal(12,2)
   @@index([companyId,quotationId])
 }
+// Stores accepted quotation orders.
 model SalesOrder {
   id String @id @default(uuid()) @db.Uuid
   companyId String @db.Uuid
@@ -155,6 +172,7 @@ model SalesOrder {
   invoice Invoice?
   @@index([companyId])
 }
+// Stores order items and prices.
 model OrderItem {
   id String @id @default(uuid()) @db.Uuid
   companyId String @db.Uuid
@@ -168,6 +186,7 @@ model OrderItem {
   lineTotal Decimal @db.Decimal(12,2)
   @@index([companyId,orderId])
 }
+// Stores invoice amounts and due dates.
 model Invoice {
   id String @id @default(uuid()) @db.Uuid
   companyId String @db.Uuid
@@ -186,6 +205,7 @@ model Invoice {
   reminders Reminder[]
   @@index([companyId])
 }
+// Stores invoice items and prices.
 model InvoiceItem {
   id String @id @default(uuid()) @db.Uuid
   companyId String @db.Uuid
@@ -199,6 +219,7 @@ model InvoiceItem {
   lineTotal Decimal @db.Decimal(12,2)
   @@index([companyId,invoiceId])
 }
+// Stores customer payments.
 model Payment {
   id String @id @default(uuid()) @db.Uuid
   companyId String @db.Uuid
@@ -210,6 +231,7 @@ model Payment {
   paymentDate DateTime @default(now())
   @@index([companyId,invoiceId])
 }
+// Stores outstanding payment reminders.
 model Reminder {
   id String @id @default(uuid()) @db.Uuid
   companyId String @db.Uuid

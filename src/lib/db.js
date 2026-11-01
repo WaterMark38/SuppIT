@@ -1,3 +1,4 @@
+// Backend helpers.
 import { PrismaClient, Prisma } from '@prisma/client';
 const globalForPrisma = globalThis;
 export const prisma = globalForPrisma.suppitPrisma || new PrismaClient();

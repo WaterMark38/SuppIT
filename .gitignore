@@ -4,17 +4,3 @@ node_modules/
 .env.local
 .vercel/
 *.log
-node_modules/
-.next/
-.env
-.env.*
-!.env.example
-.idea/
-*.log
-*.backup
-node_modules/
-.next/
-.env
-.env.*
-!.env.example
-*.log

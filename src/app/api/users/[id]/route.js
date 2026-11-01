@@ -1,3 +1,5 @@
+// Backend API.
+// Updates the selected account while protecting the Super Admin.
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { withAuth } from '@/lib/auth';

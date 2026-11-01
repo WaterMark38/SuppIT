@@ -1,3 +1,5 @@
+// Backend API.
+// Updates a specific quotation if its current status allows changes.
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { withAuth } from '@/lib/auth';

@@ -1,3 +1,5 @@
+// Backend API.
+// Returns saved sales orders and their linked information.
 import { withAuth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { json } from '@/lib/http';

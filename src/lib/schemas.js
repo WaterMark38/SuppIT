@@ -1,3 +1,4 @@
+// Backend helpers.
 import { z } from 'zod';
 export const customerSchema = z.object({name:z.string().trim().min(1).max(100),email:z.email().max(150),phone:z.string().trim().min(1).max(20),address:z.string().trim().optional().nullable()}).strict();
 export const supplierSchema = z.object({name:z.string().trim().min(1).max(100),email:z.union([z.email().max(150), z.literal('')]).optional().nullable(),phone:z.string().max(20).optional().nullable(),address:z.string().optional().nullable()}).strict();

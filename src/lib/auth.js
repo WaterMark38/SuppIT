@@ -1,15 +1,18 @@
+// Backend helpers.
 import { cookies } from 'next/headers';
 import { SignJWT, jwtVerify } from 'jose';
 import { prisma } from './db';
 import { AppError, handleError, isSafeOrigin } from './http';
 
 const COOKIE = 'suppit_session';
+// Loads the session secret.
 function key() {
   const secret = process.env.SESSION_SECRET;
   if (!secret || secret.length < 32) throw new Error('SESSION_SECRET must be at least 32 characters');
   return new TextEncoder().encode(secret);
 }
 
+// Creates a login session.
 export async function createSession(userId) {
   const user = await prisma.user.findUnique({
     where: {id:userId}, select: {sessionVersion:true}
@@ -24,10 +27,12 @@ export async function createSession(userId) {
   });
 }
 
+// Clears the login session.
 export async function clearSession() {
   (await cookies()).delete(COOKIE);
 }
 
+// Checks the current user and role.
 export async function currentUser() {
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token) return null;
@@ -44,6 +49,7 @@ export async function currentUser() {
   } catch { return null; }
 }
 
+// Checks API access and permissions.
 export function withAuth(action, roles = ['Admin','Staff','Viewer']) {
   return async function(request, context) {
     try {
@@ -52,8 +58,8 @@ export function withAuth(action, roles = ['Admin','Staff','Viewer']) {
       }
       const user = await currentUser();
       if (!user) throw new AppError('Please sign in',401);
-      // The company owner may access all endpoints available to an Admin.
-      // Other roles never inherit higher permissions.
+      // Super Admin can access Admin routes.
+      // Other roles have limited access.
       const permitted = roles.includes(user.role) ||
         (user.role === 'SuperAdmin' && roles.includes('Admin'));
       if (!permitted) throw new AppError('Insufficient permissions',403);

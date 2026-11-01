@@ -1,3 +1,5 @@
+// Account setup.
+// Run this script in the terminal.
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
@@ -42,7 +44,7 @@ try {
   if (existingOwnerUsername && existingOwnerUsername.id !== owner.id) {
     throw new Error('That Super Admin username is already in use. No changes made.');
   }
-  // Both updates take place together, so a failure cannot leave half a setup.
+  // Saves both account changes together.
   const lecturerHash = await bcrypt.hash(lecturerPassword,12);
   const ownerHash = ownerNewPassword ? await bcrypt.hash(ownerNewPassword,12) : null;
   await db.$transaction(async tx => {

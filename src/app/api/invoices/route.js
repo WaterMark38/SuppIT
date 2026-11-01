@@ -1,3 +1,5 @@
+// Backend API.
+// Returns invoices and their payment details.
 import { withAuth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { json } from '@/lib/http';

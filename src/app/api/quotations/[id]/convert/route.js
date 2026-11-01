@@ -1,3 +1,5 @@
+// Backend API.
+// Converts an accepted quotation into a linked sales order.
 import { prisma } from '@/lib/db';
 import { withAuth } from '@/lib/auth';
 import { AppError,json } from '@/lib/http';

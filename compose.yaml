@@ -1,3 +1,4 @@
+# Starts the app using .env settings.
 # Run locally with: docker compose up --build -d
 # This runs only the Next.js backend. The database is your existing Neon project.
 services:

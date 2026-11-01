@@ -1,3 +1,4 @@
+# Builds the Next.js container.
 # SuppIT Phase 4 - local development container (Next.js API + Prisma)
 # Neon PostgreSQL remains hosted in the cloud. No database image needed.
 FROM node:22-bookworm-slim

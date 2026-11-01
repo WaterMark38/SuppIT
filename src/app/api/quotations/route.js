@@ -1,3 +1,5 @@
+// Backend API.
+// Saves quotations and their line items in Neon.
 import { prisma, Prisma } from '@/lib/db';
 import { withAuth } from '@/lib/auth';
 import { quoteSchema } from '@/lib/schemas';

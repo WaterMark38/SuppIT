@@ -1,3 +1,5 @@
+// Account setup.
+// Run this script in the terminal.
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';

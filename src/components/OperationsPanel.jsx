@@ -1,8 +1,10 @@
+// Frontend screens.
 
 "use client";
 
 import { useEffect, useState } from "react";
 
+// Calls the backend and returns its result.
 async function call(path, options = {}) {
   const response = await fetch(`/api${path}`, {
     credentials: "same-origin",
@@ -31,12 +33,14 @@ const zar = (value) =>
 const when = (value) =>
     value ? new Date(value).toLocaleDateString("en-ZA") : "-";
 
+// Shows reports, invoices, payments and reminders.
 export default function OperationsPanel({ activeTab }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
 
+  // Loads data for the selected tab.
   async function load() {
     setError("");
 
@@ -60,6 +64,7 @@ export default function OperationsPanel({ activeTab }) {
     load();
   }, [activeTab]);
 
+  // Checks due dates and updates reminders.
   async function syncReminders() {
     setBusy(true);
 
@@ -73,6 +78,7 @@ export default function OperationsPanel({ activeTab }) {
     }
   }
 
+  // Sends the payment to the backend.
   async function recordPayment(invoice) {
     if (!invoice?.id) return;
 
@@ -115,6 +121,7 @@ export default function OperationsPanel({ activeTab }) {
     }
   }
 
+  // Loads and previews the selected invoice.
   async function openInvoice(invoice) {
     if (!invoice?.id) return;
 
@@ -122,7 +129,7 @@ export default function OperationsPanel({ activeTab }) {
     setError("");
 
     try {
-      // Obtain the invoice and its customer details from Neon.
+      // Loads invoice and customer details.
       const invoices = await call("/invoices");
 
       const list = Array.isArray(invoices)

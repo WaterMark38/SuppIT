@@ -1,3 +1,5 @@
+// Backend API.
+// Calculates the dashboard totals using company data from Neon.
 import { prisma, Prisma } from '@/lib/db';
 import { withAuth } from '@/lib/auth';
 import { json } from '@/lib/http';

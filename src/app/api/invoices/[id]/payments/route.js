@@ -1,3 +1,5 @@
+// Backend API.
+// Records a payment and updates the invoice balance and status.
 import { z } from 'zod';
 import { prisma, Prisma } from '@/lib/db';
 import { withAuth } from '@/lib/auth';

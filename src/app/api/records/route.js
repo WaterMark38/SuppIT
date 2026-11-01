@@ -1,3 +1,5 @@
+// Backend API.
+// Loads and saves the records used by the original SuppIT dashboard.
 import { withAuth } from '@/lib/auth';
 import { AppError, json } from '@/lib/http';
 import { allUiRecords,createUiRecord } from '@/lib/legacy-ui';

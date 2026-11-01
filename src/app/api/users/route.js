@@ -1,10 +1,12 @@
+// Backend API.
+// Lists user accounts and allows an authorised Admin to create new accounts.
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { withAuth } from '@/lib/auth';
 import { AppError, json, readBody } from '@/lib/http';
 
-// Every user logs in with a unique username. An email address is optional.
+// Username is required; email is optional.
 const usernameSchema = z.string().trim().min(3).max(40)
   .regex(/^[a-zA-Z][a-zA-Z0-9._-]*$/, 'Use letters, numbers, dots, hyphens or underscores');
 
@@ -18,7 +20,7 @@ const createSchema = z.object({
 
 export const GET = withAuth(async (_req, user) => json(
   await prisma.user.findMany({
-    // A regular Admin cannot view Super Admin account details.
+    // Admin cannot view Super Admin details.
     where: {companyId:user.companyId,
       ...(user.role === 'Admin' ? {role: {not:'SuperAdmin'}} : {})},
     select: {id:true,fullName:true,username:true,email:true,role:true},

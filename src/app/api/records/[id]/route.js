@@ -1,3 +1,5 @@
+// Backend API.
+// Updates or removes one record after the backend checks permissions.
 import { withAuth } from '@/lib/auth';
 import { json } from '@/lib/http';
 import { updateUiRecord,deleteUiRecord } from '@/lib/legacy-ui';

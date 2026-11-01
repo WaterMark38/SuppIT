@@ -1,3 +1,5 @@
+// Backend API.
+// Resets permitted account passwords and invalidates older sessions.
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { withAuth, clearSession } from '@/lib/auth';
@@ -17,15 +19,15 @@ export const PATCH = withAuth(async (req, actor, ctx) => {
 
   const isSelf = target.id === actor.id;
 
-  // Administrators may reset Staff only; the Super Admin may reset any
-  // other Admin/Staff account. No one may reset the Super Admin from another account.
+  // Admin resets Staff; Super Admin can also reset Admins.
+  // Other users cannot reset the Super Admin.
   if (!isSelf) {
     if (target.role === 'SuperAdmin') throw new AppError('The Super Admin account is protected',403);
     if (actor.role === 'Admin' && target.role !== 'Staff') {
       throw new AppError('Administrators may only reset Staff passwords',403);
     }
   } else {
-    // All users who change their own passwords must prove they know the old one.
+    // Changing your own password needs the old password.
     if (!d.currentPassword || !await bcrypt.compare(d.currentPassword,target.passwordHash)) {
       throw new AppError('Current password is incorrect',403);
     }

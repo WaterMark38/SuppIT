@@ -1,3 +1,5 @@
+// Backend API.
+// Generates an invoice using the saved order items and totals.
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';

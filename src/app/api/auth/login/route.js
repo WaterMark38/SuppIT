@@ -1,3 +1,5 @@
+// Backend API.
+// Checks the username or email and password, then starts a session if they match.
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
@@ -15,13 +17,12 @@ export async function POST(req) {
     const data = await readBody(req, loginSchema);
     const identifier = data.identifier.trim().toLowerCase();
 
-    // Usernames are unique across the application, so the login does not
-    // need a company name. Email addresses are also globally unique.
+    // Usernames are unique, so no company name is needed.
     const user = identifier.includes('@')
       ? await prisma.user.findUnique({ where: { email: identifier } })
       : await prisma.user.findUnique({ where: { username: identifier } });
 
-    // Use the same error for an unknown account and an incorrect password.
+    // Keep login errors generic.
     if (!user || !await bcrypt.compare(data.password, user.passwordHash)) {
       throw new AppError('Invalid username/email or password', 401);
     }

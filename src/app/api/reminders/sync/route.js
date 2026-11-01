@@ -1,7 +1,9 @@
+// Backend API.
+// Checks outstanding invoices and updates due-soon or overdue reminders in Neon.
 import { withAuth } from '@/lib/auth';
 import { prisma, Prisma } from '@/lib/db';
 import { json } from '@/lib/http';
-// Performs due-soon/overdue classification when called. NOT an email scheduler.
+// Checks due dates; does not send emails.
 export const POST=withAuth(async(_req,u)=>{
  const today=new Date();today.setUTCHours(0,0,0,0);
  const invoices=await prisma.invoice.findMany({where:{companyId:u.companyId,paymentStatus:{not:'Paid'}},include:{payments:true}});
