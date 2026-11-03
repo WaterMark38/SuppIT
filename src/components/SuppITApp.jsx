@@ -286,6 +286,28 @@ function Icon({ name, size = 20 }) {
   return <svg {...common}>{paths[name]}</svg>;
 }
 
+// Shows or hides the password typed into the field.
+function PasswordInput({ ...inputProps }) {
+  const [showPassword, setShowPassword] = useState(false);
+
+  return (
+    <div className="password-input-wrap">
+      <input {...inputProps} type={showPassword ? "text" : "password"} />
+      <button
+        type="button"
+        className="password-toggle"
+        onClick={() => setShowPassword((shown) => !shown)}
+        aria-label={showPassword ? "Hide password" : "Show password"}
+        aria-pressed={showPassword}
+        title={showPassword ? "Hide password" : "Show password"}
+      >
+        <Icon name="eye" size={18} />
+        <span>{showPassword ? "Hide" : "Show"}</span>
+      </button>
+    </div>
+  );
+}
+
 // Shows the SuppIT logo.
 function BrandLogo({ className = "" }) {
   const [failed, setFailed] = useState(false);
@@ -1345,8 +1367,7 @@ function App() {
 
             <label className="form-field">
               <span>Password</span>
-              <input
-                type="password"
+              <PasswordInput
                 value={loginForm.password}
                 onChange={(event) =>
                   setLoginForm({ ...loginForm, password: event.target.value })
@@ -1511,13 +1532,15 @@ function App() {
             </>
           )}
 
+          {/* Opens the existing Reminders page. */}
           <button
             className="notification-button"
-            aria-label="Notifications"
+            aria-label="Open reminders and notifications"
+            title="View reminders and notifications"
+            onClick={() => selectTab("reminders")}
             type="button"
           >
             <Icon name="bell" size={20} />
-            <span />
           </button>
         </header>
 
@@ -2790,7 +2813,7 @@ function UserManagementModal({
               </label>
               <label className="form-field user-create-full">
                 <span>Temporary password (at least 12 characters)</span>
-                <input type="password" value={newUser.password} onChange={e=>setNewUser({...newUser,password:e.target.value})}
+                <PasswordInput value={newUser.password} onChange={e=>setNewUser({...newUser,password:e.target.value})}
                   minLength={12} maxLength={72} placeholder="Create a unique temporary password" autoComplete="new-password" required />
               </label>
             </div>
@@ -2825,14 +2848,14 @@ function UserManagementModal({
                     <div className="user-inline-row">
                       <label className="form-field">
                         <span>{user.id===currentUserId ? "Your new password" : "Reset password"}</span>
-                        <input type="password" value={resetPasswords[user.id] ?? ""}
+                        <PasswordInput value={resetPasswords[user.id] ?? ""}
                           onChange={e=>setResetPasswords({...resetPasswords,[user.id]:e.target.value})}
                           placeholder="At least 12 characters" minLength={12} autoComplete="new-password" />
                       </label>
                       {user.id===currentUserId && (
                         <label className="form-field">
                           <span>Your current password</span>
-                          <input type="password" value={resetCurrentPasswords[user.id] ?? ""}
+                          <PasswordInput value={resetCurrentPasswords[user.id] ?? ""}
                             onChange={e=>setResetCurrentPasswords({...resetCurrentPasswords,[user.id]:e.target.value})}
                             placeholder="Confirm current password" autoComplete="current-password" />
                         </label>
@@ -2853,3 +2876,4 @@ function UserManagementModal({
 }
 
 export default App;
+
