@@ -18,7 +18,6 @@ Open **http://localhost:3000** after starting SuppIT. Users sign in with a **use
 - **Admin:** Manages customers, stock, quotations, orders, invoices, payments, reminders and Staff accounts. Cannot change the Super Admin account.
 - **Staff:** Uses the business functions permitted by their role. Cannot manage other users.
 
-> **Important:** The `superadmin`, `administrator` and `user1` usernames only work after those accounts have been configured in the database. The lecturer's account can be set up without an email address. Check that each account works before the demonstration. Do not put working passwords in a GitHub README; provide the lecturer's password separately.
 
 ---
 
