@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
+import { safeAudit } from '@/lib/audit';
 import { createSession } from '@/lib/auth';
 import { AppError, handleError, json, readBody, isSafeOrigin } from '@/lib/http';
 
@@ -28,6 +29,8 @@ export async function POST(req) {
     }
 
     await createSession(user.id);
+    // Record successful logins, never passwords or failed login details.
+    await safeAudit({ user, action: 'LOGIN', module: 'Sign in / out', summary: 'Signed in' });
     return json({ id:user.id, fullName:user.fullName, email:user.email,
       username:user.username, role:user.role });
   } catch (error) {

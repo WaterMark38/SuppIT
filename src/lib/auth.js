@@ -2,6 +2,7 @@
 import { cookies } from 'next/headers';
 import { SignJWT, jwtVerify } from 'jose';
 import { prisma } from './db';
+import { readAuditBody, logSavedChange } from './audit';
 import { AppError, handleError, isSafeOrigin } from './http';
 
 const COOKIE = 'suppit_session';
@@ -63,7 +64,11 @@ export function withAuth(action, roles = ['Admin','Staff','Viewer']) {
       const permitted = roles.includes(user.role) ||
         (user.role === 'SuperAdmin' && roles.includes('Admin'));
       if (!permitted) throw new AppError('Insufficient permissions',403);
-      return await action(request, user, context);
+      // Log only successful saved actions, never GET requests.
+      const body = await readAuditBody(request);
+      const response = await action(request, user, context);
+      if (response?.ok) await logSavedChange(request, user, response, body);
+      return response;
     } catch(error) { return handleError(error); }
   };
 }

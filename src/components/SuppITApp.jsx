@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
 import OperationsPanel from "./OperationsPanel";
+import AuditPanel from "./AuditPanel";
+import PaymentCenterPanel from "./PaymentCenterPanel";
 import html2canvas from "html2canvas";
 
 
@@ -18,6 +20,7 @@ const TABS = [
   { id: "payments", label: "Payments", icon: "bank" },
   { id: "reminders", label: "Reminders", icon: "bell" },
   { id: "reports", label: "Reports", icon: "calendar" },
+  { id: "audit", label: "Audit", icon: "shield" },
 ];
 
 const INITIAL_RECORDS = [];
@@ -95,6 +98,7 @@ const PAGE_COPY = {
   payments: {eyebrow:"Receipts",title:"Payments",description:"Record payments against invoices",button:"From invoices"},
   reminders: {eyebrow:"Collections",title:"Reminders",description:"Track upcoming and overdue invoices",button:"Review"},
   reports: {eyebrow:"Performance",title:"Reporting and Business Overview",description:"Live summary of SuppIT business activity",button:"Overview"},
+  audit: { eyebrow: "Administration", title: "Audit Trail", description: "See who visited each page or saved changes in SuppIT.", button: "Admin only" },
   stock: {
     eyebrow: "Inventory",
     title: "Stock",
@@ -671,7 +675,7 @@ function App() {
   const isContactTab = activeTab === "suppliers" || activeTab === "customers";
   const isTransactionTab = activeTab === "orders" || activeTab === "quotes";
   const isStockTab = activeTab === "stock";
-  const isOperationsTab = ["invoices","payments","reminders","reports"].includes(activeTab);
+  const isOperationsTab = ["invoices","payments","reminders","reports", "audit"].includes(activeTab);
   const stockItems = useMemo(() => records.filter(item => item.category === "stock"), [records]);
 
   useEffect(() => {
@@ -694,6 +698,16 @@ function App() {
     }
     restoreSession();
   }, []);
+
+  // Saves page visits for the Audit Trail.
+  useEffect(() => {
+    if (!currentUserId) return;
+    fetch("/api/audit/visit", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tab: activeTab })
+    }).catch(() => { /* Offline activity cannot be recorded. */ });
+  }, [activeTab, currentUserId]);
 
   // Loads business records from Neon.
   async function refreshRecords() {
@@ -1405,7 +1419,7 @@ function App() {
         <nav className="sidebar__nav" aria-label="Main navigation">
           <p className="nav-label">Workspace</p>
 
-          {TABS.map((tab) => (
+          {TABS.filter((tab) => tab.id !== "audit" || isAdmin).map((tab) => (
             <button
               key={tab.id}
               className={`nav-item ${
@@ -1556,6 +1570,7 @@ function App() {
               className="primary-button"
               onClick={openAddModal}
               disabled={activeTab === "orders" || isOperationsTab}
+              style={activeTab === "payments" ? { display: "none" } : undefined}
               title={activeTab === "orders" ? "Accept a quotation to create an order" : isOperationsTab ? "Use controls in this module" : undefined}
               type="button"
             >
@@ -1583,7 +1598,7 @@ function App() {
             </div>
           )}
 
-          {isOperationsTab ? <OperationsPanel activeTab={activeTab} /> : (<>
+          {activeTab === "audit" && isAdmin ? <AuditPanel /> : activeTab === "payments" ? <PaymentCenterPanel /> : isOperationsTab ? <OperationsPanel activeTab={activeTab} /> : (<>
           <section className="stats-grid" aria-label="Statistics">
             {[
               [stats.firstLabel, stats.firstValue, isStockTab ? "box" : isContactTab ? "users" : "calendar", "blue"],

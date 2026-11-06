@@ -46,6 +46,9 @@ enum ReminderStatus {
 
 // Keeps each company separate.
 model Company {
+  auditLogs AuditLog[]
+  supplierPayments SupplierPayment[]
+  supplierBills SupplierBill[]
   id String @id @default(uuid()) @db.Uuid
   companyName String @db.VarChar(100)
   taxNumber String? @db.VarChar(30)
@@ -62,6 +65,7 @@ model Company {
 }
 // Stores users and hashed passwords.
 model User {
+  auditLogs AuditLog[]
   id String @id @default(uuid()) @db.Uuid
   companyId String @db.Uuid
   company Company @relation(fields:[companyId],references:[id])
@@ -93,6 +97,7 @@ model Customer {
 }
 // Stores suppliers.
 model Supplier {
+  bills SupplierBill[]
   id String @id @default(uuid()) @db.Uuid
   companyId String @db.Uuid
   company Company @relation(fields:[companyId],references:[id])
@@ -243,4 +248,54 @@ model Reminder {
   description String?
   @@unique([invoiceId])
   @@index([companyId])
+}
+
+
+// Stores supplier invoices.
+model SupplierBill {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  company Company @relation(fields: [companyId], references: [id])
+  supplierId String @db.Uuid
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+  billNumber String @db.VarChar(40)
+  description String? @db.VarChar(200)
+  amountDue Decimal @db.Decimal(12, 2)
+  billDate DateTime @db.Date
+  dueDate DateTime @db.Date
+  createdAt DateTime @default(now())
+  payments SupplierPayment[]
+  @@unique([companyId, billNumber])
+  @@index([companyId, dueDate])
+}
+
+// Stores money paid to suppliers.
+model SupplierPayment {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  company Company @relation(fields: [companyId], references: [id])
+  billId String @db.Uuid
+  bill SupplierBill @relation(fields: [billId], references: [id])
+  amountPaid Decimal @db.Decimal(12, 2)
+  paymentMethod String @db.VarChar(30)
+  paymentDate DateTime @default(now())
+  @@index([companyId, billId])
+}
+
+
+// Stores logins, page visits and successful changes.
+model AuditLog {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  company Company @relation(fields: [companyId], references: [id])
+  userId String? @db.Uuid
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action String @db.VarChar(30)
+  module String @db.VarChar(50)
+  summary String @db.VarChar(350)
+  entityId String? @db.VarChar(100)
+  details Json?
+  createdAt DateTime @default(now())
+  @@index([companyId, createdAt])
+  @@index([userId])
 }
