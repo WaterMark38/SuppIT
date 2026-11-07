@@ -1,257 +1,284 @@
 # SuppIT — Business Management System
 
----
+## 1. About the project
 
-## 1. Login Details and User Roles
-please run npm run dev in webstorm
-Open **http://localhost:3000** after starting SuppIT. Users sign in with a **username or registered email address**, followed by their password.
+SuppIT is a web-based business management system that we developed for our IT project. The aim is to help a small business manage its daily records in one place instead of keeping customer details, quotations and payments in separate files.
 
-| Account | Login | Password | Main access |
-|---|---|---|---|
-| **Super Admin — System Owner** | `superadmin` or `teamwatermark9@gmail.com` | **Private owner password** | Full system and account management |
-| **Admin — Lecturer** | `administrator` | **Provided privately to the lecturer** | Business management and Staff account management |
-| **Staff — Normal User** | `user1` (once created) | **Set by an administrator** | Day-to-day business functions |
+The system allows users to manage customers, suppliers, stock items, quotations, orders, invoices, payments and reminders. We also added an Audit Trail so administrators can check the activity recorded in the system.
 
-**Account permissions**
+The application can be opened in a web browser. Its data is saved in a Neon PostgreSQL database, so records are not lost when the user refreshes the page or signs out.
 
-- **Super Admin:** Manages the system, Admin and Staff accounts, passwords and business records.
-- **Admin:** Manages customers, stock, quotations, orders, invoices, payments, reminders and Staff accounts. Cannot change the Super Admin account.
-- **Staff:** Uses the business functions permitted by their role. Cannot manage other users.
+**Live application (Vercel):** [https://supp-it.vercel.app](https://supp-it.vercel.app)
 
+## 2. Technologies used
 
----
-
-## 2. About SuppIT
-
-SuppIT is a web-based business management system for small businesses. It helps users manage **customers, suppliers, products, quotations, sales orders, invoices, payments and payment reminders** in one place.
-
-SuppIT uses a **three-tier architecture**:
-
-| Layer | Technology | What it does |
-
-| **Presentation Layer** | React and Next.js | Displays the dashboard, forms, tables and buttons |
-
-| **Application Layer** | Next.js API routes and Prisma | Checks requests, applies business rules and reads or saves records |
-
-| **Database Layer** | Neon PostgreSQL | Stores the business information and links related records |
-
-The frontend and backend are part of the **same Next.js project**. Neon is a separate cloud database.
-
----
-
-## 3. Frontend — Presentation Layer
-
-The frontend is what users see in their browser. It includes the login page, dashboard and screens used to manage business records.
-
-| Screen | What users can do |
+| Technology | How we used it |
 |---|---|
-| **Customers** | Add, view and update customer information |
-| **Suppliers** | Maintain supplier details |
-| **Stock** | View and manage products, services, quantities and prices |
-| **Quotations** | Select customers, add items and save quotations |
-| **Sales Orders** | View orders linked to accepted quotations |
-| **Invoices** | Review invoices and preview or download a PDF |
-| **Payments** | Record customer payments and view outstanding balances |
-| **Reminders** | Check invoices that are due soon or overdue |
-| **Reports** | View business totals and summary information |
-| **User Management** | Manage user accounts according to the signed-in user's role |
+| React | Builds the forms, tables and other parts of the interface |
+| Next.js | Runs the web application and provides the backend API routes |
+| JavaScript | Handles the frontend and backend logic |
+| Prisma ORM | Connects the backend to the PostgreSQL database |
+| Neon PostgreSQL | Stores the business records |
+| jsPDF and html2canvas | Help generate PDF documents |
+| Git and GitHub | Store and track changes to the project code |
+| Vercel | Hosts the online application |
+| Docker (optional) | Can be used to run the application in a container |
 
-**Example:** A user completes a quotation form and clicks **Save**. The frontend sends the information to the backend. Once saved, the quotation can be displayed again in SuppIT.
+### Three-tier architecture
 
----
+We used a three-tier design to separate the main parts of the application:
 
-## 4. Backend — Application Layer
+1. **Presentation layer:** React and Next.js display the pages that users interact with.
+2. **Application layer:** Next.js API routes check requests, apply the rules and use Prisma to work with the database.
+3. **Database layer:** Neon PostgreSQL stores users, customers, suppliers and other records.
 
-The backend is built using **Next.js API routes (JavaScript)**. It works behind the scenes when a user saves, updates or opens a record.
-
-The backend:
-
-- Checks login details and user permissions.
-- Checks required fields before saving records.
-- Saves customers, suppliers, stock items and quotations.
-- Processes accepted quotations into related sales orders.
-- Creates invoice records using saved order information.
-- Records payments and updates invoice balances and payment statuses.
-- Checks unpaid invoices when a user selects **Check invoices**.
-- Sends saved records or error messages back to the frontend.
-
-**How it communicates with Neon:** The API uses **Prisma ORM** to read and write information in the PostgreSQL database. This keeps database access on the server instead of putting database credentials in the browser.
-
----
-
-## 5. Database — Data Layer
-
-SuppIT uses **Neon PostgreSQL** to store information so it is available after refreshing the browser or logging in again.
-
-The Prisma schema defines these main records:
-
-| Records | Information stored |
-|---|---|
-| **Company and User** | Company details, user accounts and roles |
-| **Customer and Supplier** | Business contacts |
-| **StockItem** | Product and service information |
-| **Quotation and QuotationItem** | Quotation details and selected items |
-| **SalesOrder and OrderItem** | Orders and their saved items |
-| **Invoice and InvoiceItem** | Invoice totals, dates, statuses and items |
-| **Payment** | Payments received against invoices |
-| **Reminder** | Due-soon, overdue and resolved reminders |
-
-Related records use IDs so, for example, an invoice can be linked to its customer and sales order. Business records are associated with the relevant company.
-
-### How the three layers communicate
+The frontend and backend are in the same Next.js project, while Neon is hosted separately.
 
 ```text
-User adds or updates information in SuppIT
-                  |
-                  v
-Frontend — React / Next.js
-                  |
-                  v
-Backend — Next.js API routes
-                  |
-                  v
-Prisma reads or saves data in Neon PostgreSQL
-                  |
-                  v
-Backend returns the result
-                  |
-                  v
-Frontend displays the saved record or updated status
+User opens SuppIT in a browser
+             |
+             v
+React / Next.js frontend
+             |
+             v
+Next.js API routes
+             |
+             v
+Prisma ORM
+             |
+             v
+Neon PostgreSQL database
 ```
 
-### Example A — From quotation to sales order
+## 3. Main features
 
-1. **Frontend:** The user selects a customer, adds products or services and clicks **Save quotation**.
-2. **Backend:** Next.js checks the information and asks Prisma to save it.
-3. **Database:** Neon stores the quotation and its individual items.
-4. **Return to screen:** The backend returns the saved quotation, which appears in SuppIT.
-5. **Accepted quotation:** The backend creates the related sales order, which is then available in the Orders screen.
-
-### Example B — From sales order to invoice and payment
-
-1. **Frontend:** The user opens an order and selects **Generate invoice**.
-2. **Backend:** Next.js prepares the invoice using the saved order details.
-3. **Database:** Neon stores the invoice, its items, amount, due date and payment status.
-4. **Return to screen:** The invoice appears in SuppIT for review and PDF download.
-5. **Payment:** When the user records a payment, the backend saves it and updates the outstanding balance shown in the interface.
-
-### Payment statuses and reminders
-
-| Status | Meaning |
+| Feature | What it does |
 |---|---|
-| **Unpaid** | No payment has been received |
-| **Partially Paid** | A payment was received, but money is still outstanding |
-| **Paid** | The invoice has been paid in full |
-| **Due Soon** | An unpaid balance is due within the next seven days |
-| **Overdue** | The due date has passed and money is still outstanding |
-| **Resolved** | The reminder has been resolved, for example after full payment |
+| Customers | Add, view and update customer details |
+| Suppliers | Add and manage supplier information |
+| Stock | Manage products, quantities and prices |
+| Quotes | Create quotations with customers and line items |
+| Orders | Create an order when a quotation is accepted |
+| Invoices | Generate customer invoices from saved orders |
+| Payments | Record customer receipts and supplier payments |
+| Reminders | Check which customer invoices are due soon or overdue |
+| Reports | Show a summary of the business records |
+| Audit | Let administrators review user activity and saved changes |
+| User management | Let administrators create and manage accounts within their permissions |
 
-The user selects **Check invoices** to refresh reminders. Reminder information appears inside SuppIT; the current system **does not automatically send email or SMS reminders**. For quotation and invoice emails, users can open their default email application and manually attach a downloaded PDF.
+### From a quotation to a payment
 
----
+The normal sales process in SuppIT works as follows:
 
-## 6. Install and Run SuppIT Locally
+1. A user creates a quotation for an existing customer.
+2. When the customer accepts the quotation, it can be converted into an order.
+3. An invoice is generated from the order and saved in Neon.
+4. A user records the payment received from the customer.
+5. The Payments screen shows how much has been paid and how much is still outstanding.
 
-**Requirements:** Node.js and npm, Git, a configured Neon PostgreSQL database, and a terminal such as Windows PowerShell or WebStorm. Docker Desktop is optional.
+For example, if an invoice is **R10,000** and the customer pays **R6,000**, the system shows **R4,000 outstanding**. The payment status is shown as **Partially paid**.
 
-Follow these steps in order. **Each command is run separately.**
+## 4. User accounts and permissions
 
-1. **Download the project** (skip this if you already have the project folder):
-   ```powershell
-   git clone https://github.com/WaterMark38/SuppIT.git
-   ```
+SuppIT has different account roles. Users sign in with their username or registered email address and password.
 
-2. **Open the project folder:**
-   ```powershell
-   cd SuppIT
-   ```
+| Role | Main permissions |
+|---|---|
+| **Super Admin** | Manages the system, administrators and staff accounts |
+| **Admin** | Manages business records and permitted staff accounts; can view Audit |
+| **Staff** | Uses the business screens, including customer and supplier payment records; cannot view Audit or manage users |
 
-3. **Install the project packages:**
-   ```powershell
-   npm install
-   ```
+**Only Admin and Super Admin can open the Audit tab or download Audit reports.** Staff users do not see the tab, and the backend also checks the user's role.
 
-4. **Create `.env` if it does not already exist:**
-   ```powershell
-   Copy-Item .env.example .env
-   ```
-   Open `.env` and enter your private connection settings:
-   ```dotenv
-   DATABASE_URL="YOUR_NEON_POOLED_CONNECTION_STRING"
-   DIRECT_URL="YOUR_NEON_DIRECT_CONNECTION_STRING"
-   SESSION_SECRET="YOUR_PRIVATE_SESSION_SECRET"
-   ```
-   Keep any existing `.env` file rather than overwriting it. Use the **pooled** Neon connection for `DATABASE_URL` and the **direct** connection for `DIRECT_URL`.
+Login details are provided privately to the people who need them. Passwords and database connection details are not included in this public README.
 
-5. **Check the Prisma schema:**
-   ```powershell
-   npm run db:validate
-   ```
+## 5. Customer and supplier payments
 
-6. **Generate Prisma Client:**
-   ```powershell
-   npm run db:generate
-   ```
+The Payments page has two separate views:
 
-7. **Check the database migration status:**
-   ```powershell
-   npx prisma migrate status
-   ```
-   For a **new, empty development database only**, apply the migration files already included in the project:
-   ```powershell
-   npm run db:deploy
-   ```
-   Do not reset or overwrite a database containing existing business records.
+- **Customer invoices:** Money that customers still need to pay to the business.
+- **Supplier invoices:** Money that the business needs to pay to suppliers.
 
-8. **Start SuppIT:**
-   ```powershell
-   npm run dev
-   ```
+Users can record supplier invoices, enter payments against them and check the remaining balance. These are records of payments; SuppIT does **not** transfer money through a bank.
 
-9. **Open the system:** Visit **http://localhost:3000** in your browser.
+Each payment record can show the invoice number, customer or supplier, invoice date, due date, total amount, amount paid, outstanding amount, status and payment history.
 
-10. **Stop the system:** Press **Ctrl + C** in the terminal.
+### Payment filters
 
-### First-time account setup
+Users can filter the records by:
 
-For a **new database with no administrator**, create the first administrator using:
+- Customer or supplier
+- Invoice date, due date or latest payment date
+- Today, the last 7 days, the last 30 days, this month or a custom date range
+- Payment status: Unpaid, Partially paid or Paid
+
+The **Export filtered PDF** and **Export filtered CSV** buttons download the records that match the selected filters. Customer and supplier reports are exported separately.
+
+## 6. Audit Trail
+
+We added an Audit Trail to help administrators see who used the system and what actions were recorded.
+
+The Audit page can show:
+
+- The user who performed the action
+- The date and time
+- The type of action, such as login, page visit, create, update, delete or payment
+- The part of SuppIT where it happened
+- A short description and the record ID when available
+- The names of fields submitted during an update
+
+Administrators can search or filter Audit records by user, action, module and date range. They can also export the filtered results to **PDF** or **CSV**.
+
+Audit records are loaded in pages. To include older activity in a report, select **Load older entries** before exporting. The export includes the records currently loaded and matching the filters, not automatically every record ever stored in Neon.
+
+**Limitations:** The Audit Trail records actions handled by the application's audit-enabled API routes. It does not track changes made directly in Neon's SQL Editor. For edits, it shows submitted field names rather than a complete before-and-after history of every value. Passwords are not included in audit reports.
+
+## 7. Database
+
+We used **Neon PostgreSQL** because the information needs to remain available after the application is closed. Prisma defines the database models and their relationships.
+
+Some of the main models are:
+
+| Models | Purpose |
+|---|---|
+| `Company`, `User` | Company details and user accounts |
+| `Customer`, `Supplier` | Customer and supplier details |
+| `StockItem` | Products, prices and quantities |
+| `Quotation`, `QuotationItem` | Quotation details and items |
+| `SalesOrder`, `OrderItem` | Orders created from accepted quotations |
+| `Invoice`, `InvoiceItem` | Customer invoice details |
+| `Payment` | Payments received from customers |
+| `SupplierBill`, `SupplierPayment` | Supplier invoices and payments made |
+| `Reminder` | Due-soon and overdue invoice records |
+| `AuditLog` | User activity recorded by the application |
+
+Most business records are linked to a company, so users should only work with data belonging to their company.
+
+**Note:** The supplier and audit features need their relevant Prisma migrations to be applied to the correct Neon branch before they can work. Updating the frontend alone does not create database tables.
+
+## 8. How to run the project locally
+
+### Requirements
+
+- Node.js and npm
+- Git
+- A Neon PostgreSQL database
+- WebStorm, VS Code or another code editor
+- An internet connection to access Neon
+
+### Installation
+
+Run the commands below in PowerShell or the terminal in WebStorm.
+
+**1. Download the project** (skip this if it is already on your computer):
+
+```powershell
+git clone https://github.com/WaterMark38/SuppIT.git
+cd SuppIT
+```
+
+**2. Install the packages:**
+
+```powershell
+npm install
+```
+
+**3. Configure the environment file:**
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Open `.env` and add your own Neon connection details and a private session secret. Do not replace an `.env` file that is already configured.
+
+```dotenv
+DATABASE_URL="YOUR_NEON_POOLED_CONNECTION_STRING"
+DIRECT_URL="YOUR_NEON_DIRECT_CONNECTION_STRING"
+SESSION_SECRET="YOUR_PRIVATE_SECRET_AT_LEAST_32_CHARACTERS"
+```
+
+These are placeholders, not working credentials. Keep `.env` private and do not push it to GitHub.
+
+**4. Check and generate the Prisma client:**
+
+```powershell
+npm run db:validate
+npm run db:generate
+```
+
+**5. Check the database migrations:**
+
+```powershell
+npx prisma migrate status
+```
+
+When setting up a new database, apply the migration files included in the project:
+
+```powershell
+npm run db:deploy
+```
+
+Check that the connection is pointing to the correct Neon branch. Back up databases that already contain records, and do not approve a database reset or destructive change without reviewing it.
+
+**6. Start SuppIT:**
+
+```powershell
+npm run dev
+```
+
+Open **http://localhost:3000** in a browser. To stop the application, press **Ctrl + C** in the terminal.
+
+### First-time administrator
+
+For a new database with no administrator account, the project includes this setup command:
 
 ```powershell
 npm run admin:create
 ```
 
-The separate Super Admin and lecturer accounts must be configured and tested using the account setup provided with the project. Do not run the initial administrator creation command again on an existing configured company.
+Use this only during initial setup and follow the prompts or setup instructions for your project. Do not run it again on a database where the accounts have already been created.
 
 ### Optional Docker setup
 
-Run these commands from the project folder while Docker Desktop is running:
+If Docker Desktop is installed and the project's `compose.yaml` file is available, you can run:
 
-1. **Build and start:**
-   ```powershell
-   docker compose up --build -d
-   ```
-2. **Check the application container:**
-   ```powershell
-   docker compose ps
-   ```
-3. **Stop the application container:**
-   ```powershell
-   docker compose down
-   ```
+```powershell
+docker compose up --build -d
+docker compose ps
+```
 
-Docker runs the application locally and still connects to Neon over the internet. Do not run Docker and `npm run dev` on the same port at the same time.
+To stop the container:
 
----
+```powershell
+docker compose down
+```
 
-## 7. Current Development Notes
+Docker is optional. It runs the application in a container, but the application still uses Neon as its database. Avoid running Docker and `npm run dev` on the same port at the same time.
 
-- The database structure and original administrator setup have been completed in the development environment.
-- Confirm the Super Admin and lecturer login permissions using the latest account-management update.
-- Test the full quotation → order → invoice → payment workflow before submission.
-- Verify that changes made through the interface are saved in Neon and remain visible after refreshing.
-- Review dependency security warnings before deployment.
-- Do not upload `.env`, account passwords, database credentials, `node_modules` or `.next` to GitHub.
+## 9. Deployment and GitHub
 
----
+The project code is stored on GitHub:
 
-**Developed by WaterMark Dev Team — SuppIT Business Management System**
+**Repository:** [https://github.com/WaterMark38/SuppIT](https://github.com/WaterMark38/SuppIT)
+
+**Live application (Vercel):** [https://supp-it.vercel.app](https://supp-it.vercel.app)
+
+The application is deployed on Vercel. Vercel must have the correct environment variables configured to connect to Neon. Database migrations must also be applied to the database used by the deployed application.
+
+Files such as `.env`, `node_modules`, `.next` and personal editor settings should not be committed to the repository.
+
+## 10. Current limitations and testing
+
+The following points are important when testing or demonstrating the system:
+
+- Reminders are updated when a user selects **Check invoices**. The system does not automatically email or SMS customers.
+- A user can open their default email application for a quotation or invoice, but the downloaded PDF must be attached manually.
+- Recording a supplier payment saves a transaction in SuppIT. It does not make a bank payment.
+- PDF and CSV reports are based on the records available in the selected screen and the filters applied.
+- Audit Trail helps with accountability but is not a complete record of direct database changes.
+- The full quotation-to-order-to-invoice-to-payment process should be tested after database changes or deployment.
+
+## 11. Project team
+
+**Developed by WaterMark Dev Team**  
+BSc Information Technology project — SuppIT Business Management System
