@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { downloadCsv, downloadPdf } from "../lib/reportExport";
 
 // Reads or saves payments through the backend.
 async function api(path, options = {}) {
@@ -89,6 +90,29 @@ export default function PaymentCenterPanel() {
     paid: sum.paid + Number(row.paid || 0),
     outstanding: sum.outstanding + Number(row.outstanding || 0)
   }), { total: 0, paid: 0, outstanding: 0 }), [filtered]);
+
+  // Reports use the exact customer or supplier rows currently shown.
+  const reportHeaders = [side === "customers" ? "Customer" : "Supplier", "Invoice number",
+    "Invoice date", "Due date", "Total (ZAR)", "Paid (ZAR)", "Outstanding (ZAR)",
+    "Status", "Description", "Payment history"];
+  const reportRows = filtered.map(row => [row.name || "", row.reference || "",
+    readableDate(row.date), readableDate(row.dueDate), Number(row.total || 0).toFixed(2),
+    Number(row.paid || 0).toFixed(2), Number(row.outstanding || 0).toFixed(2),
+    row.status || "", row.description || "", (row.payments || [])
+      .map(item => `${readableDate(item.date)} - ${money(item.amount)} (${item.method || 'Other'})`).join('; ')]);
+
+  function exportReport(type) {
+    if (!data || busy || !filtered.length) return;
+    try {
+      const filename = `SuppIT-${side === 'customers' ? 'Customer' : 'Supplier'}-Invoices-${localToday()}`;
+      const filters = `Party: ${partner}; Status: ${status}; Date type: ${dateType}; Period: ${period === 'custom' ? `${fromDate || 'any'} to ${toDate || 'any'}` : period}`;
+      const totals = `Total: ${money(sums.total)} | Paid: ${money(sums.paid)} | Outstanding: ${money(sums.outstanding)}`;
+      if (type === 'csv') downloadCsv(reportHeaders, reportRows, `${filename}.csv`);
+      else downloadPdf({ title: side === 'customers' ? 'SuppIT Customer Invoices' : 'SuppIT Supplier Invoices',
+        subtitle: 'Filtered invoice and payment report', headers: reportHeaders, rows: reportRows,
+        filters, totals, filename: `${filename}.pdf` });
+    } catch (err) { setError(`Export failed: ${err.message}`); }
+  }
 
   // Saves a supplier invoice without changing existing customer invoices.
   async function saveBill(event) {
@@ -197,6 +221,14 @@ export default function PaymentCenterPanel() {
             <input type="date" value={toDate} min={fromDate || undefined} onChange={event => setToDate(event.target.value)} />
           </label>
         </>}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", margin: "14px 0" }}>
+        <button type="button" className="secondary-button" disabled={!data || busy || !filtered.length}
+          onClick={() => exportReport("csv")}>Export filtered CSV</button>
+        <button type="button" className="secondary-button" disabled={!data || busy || !filtered.length}
+          onClick={() => exportReport("pdf")}>Export filtered PDF</button>
+        <span className="suppit-payments-note">{filtered.length} matching {side === 'customers' ? 'customer' : 'supplier'} invoices</span>
       </div>
 
       {side === "suppliers" && showForm && <form className="suppit-supplier-form" onSubmit={saveBill}>
